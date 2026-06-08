@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colares P2P — Liberdade Financeira em Colares-PA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg: #050a05;
+            --bg2: #0a160a;
+            --card: #0f1f12;
+            --card-hover: #162a18;
+            --green: #009c3b;
+            --green-dim: rgba(0,156,59,0.15);
+            --green-glow: rgba(0,156,59,0.3);
+            --yellow: #ffdf00;
+            --yellow-dim: rgba(255,223,0,0.12);
+            --yellow-glow: rgba(255,223,0,0.25);
+            --btc-orange: #f7931a;
+            --ln-purple: #7b61ff;
+            --text: #eee8d5;
+            --text-muted: #7a9a6a;
+            --border: #1a3a1e;
+            --danger: #e53935;
+            --danger-dim: rgba(229,57,53,0.15);
+            --blue: #42a5f5;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        h1,h2,h3,h4,h5,h6{font-family:'Sora',sans-serif}
+        #bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+        #app{position:relative;z-index:1;min-height:100vh}
+        .view{display:none}.view.active{display:block;animation:fadeUp .5s ease}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes pulse-glow{0%,100%{box-shadow:0 0 20px var(--green-glow)}50%{box-shadow:0 0 40px var(--green-glow),0 0 60px var(--yellow-glow)}}
+        @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
+        .glow-card{background:var(--card);border:1px solid var(--border);border-radius:16px;transition:all .3s ease}
+        .glow-card:hover{border-color:var(--green);box-shadow:0 0 30px var(--green-glow);transform:translateY(-3px)}
+        .btn-primary{background:linear-gradient(135deg,var(--green),#007a2e);color:var(--yellow);font-weight:700;padding:12px 28px;border-radius:12px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.95rem;transition:all .25s ease;letter-spacing:.02em}
+        .btn-primary:hover{transform:scale(1.04);box-shadow:0 0 24px var(--green-glow)}
+        .btn-primary:active{transform:scale(.97)}
+        .btn-yellow{background:linear-gradient(135deg,var(--yellow),#e6c800);color:#0a0a0a;font-weight:700;padding:12px 28px;border-radius:12px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.95rem;transition:all .25s ease}
+        .btn-yellow:hover{transform:scale(1.04);box-shadow:0 0 24px var(--yellow-glow)}
+        .btn-danger{background:var(--danger-dim);color:var(--danger);border:1px solid rgba(229,57,53,.3);padding:8px 18px;border-radius:10px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;font-size:.85rem;transition:all .25s ease}
+        .btn-danger:hover{background:rgba(229,57,53,.25);border-color:var(--danger)}
+        .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border);padding:10px 22px;border-radius:10px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:500;font-size:.9rem;transition:all .25s ease}
+        .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+        .input-field{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.95rem;width:100%;transition:border-color .25s ease;outline:none}
+        .input-field:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-glow)}
+        .input-field::placeholder{color:var(--text-muted)}
+        .chat-bubble{max-width:80%;padding:10px 16px;border-radius:16px;font-size:.9rem;line-height:1.5;animation:slideIn .3s ease}
+        .chat-bubble.sent{background:linear-gradient(135deg,#0f3a1f,#0a2a14);border:1px solid rgba(0,156,59,.25);align-self:flex-end;border-bottom-right-radius:4px}
+        .chat-bubble.received{background:var(--card);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+        .chat-time{font-size:.7rem;color:var(--text-muted);margin-top:4px}
+        .toast{position:fixed;top:20px;right:20px;z-index:9999;padding:14px 24px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;animation:slideIn .3s ease;max-width:380px}
+        .toast.success{background:var(--green-dim);border:1px solid rgba(0,156,59,.3);color:var(--green)}
+        .toast.error{background:var(--danger-dim);border:1px solid rgba(229,57,53,.3);color:var(--danger)}
+        .toast.info{background:var(--yellow-dim);border:1px solid rgba(255,223,0,.3);color:var(--yellow)}
+        .sat-display{font-family:'Sora',sans-serif;font-weight:800;font-size:2.5rem;background:linear-gradient(135deg,var(--yellow),var(--btc-orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
+        .admin-table{width:100%;border-collapse:separate;border-spacing:0}
+        .admin-table th{background:var(--bg2);color:var(--yellow);font-family:'Sora',sans-serif;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
+        .admin-table td{padding:12px 16px;border-bottom:1px solid rgba(26,58,30,.5);font-size:.9rem}
+        .admin-table tr:hover td{background:rgba(0,156,59,.04)}
+        .role-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+        .role-admin{background:var(--yellow-dim);color:var(--yellow)}
+        .role-vendedor{background:var(--green-dim);color:var(--green)}
+        .role-comprador{background:rgba(66,165,245,.15);color:var(--blue)}
+        .online-dot{width:10px;height:10px;background:var(--green);border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(0,156,59,.5);animation:pulse-dot 2s ease-in-out infinite}
+        .offline-dot{width:10px;height:10px;background:#555;border-radius:50%;display:inline-block}
+        .logo-badge{width:90px;height:90px;border-radius:50%;object-fit:contain}
+        .logo-btc-ln{height:44px;object-fit:contain}
+        .flag-img{height:48px;border-radius:6px;object-fit:cover}
+        .flag-img-sm{height:36px;border-radius:5px;object-fit:cover}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--green)}
+        .manifesto-text{line-height:1.8;font-size:1.05rem;color:var(--text)}
+        .manifesto-text strong{color:var(--yellow)}
+        .manifesto-text em{color:var(--green);font-style:normal;font-weight:600}
+        .divider{height:1px;background:linear-gradient(90deg,transparent,var(--green),var(--yellow),var(--green),transparent);margin:2rem 0}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
+    <div id="app">
+
+        <!-- ============ LANDING ============ -->
+        <section id="view-landing" class="view active">
+            <div class="min-h-screen flex flex-col">
+                <header class="p-4 flex items-center justify-between border-b" style="border-color:var(--border);background:var(--bg2)">
+                    <div class="flex items-center gap-3">
+                        <img src="https://z-cdn-media.chatglm.cn/files/0149495c-6cc4-4a4f-b266-96c1b8a8a135.png?auth_key=1879929902-954e9fa0001f41b399514d82a40c7440-0-69936693e802847255b3f7b4a7b8e82e" alt="Colares P2P Logo" style="width:52px;height:52px;border-radius:50%">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-extrabold" style="color:var(--yellow)">COLARES P2P</h1>
+                            <p class="text-xs" style="color:var(--text-muted)">Colares-PA — Liberdade Financeira</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Bandeira do Brasil" style="height:36px;border-radius:5px">
+                        <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin e Lightning" class="logo-btc-ln">
+                    </div>
+                </header>
+
+                <div class="flex-1 flex flex-col items-center justify-center px-4 py-10">
+                    <div class="text-center mb-8">
+                        <div class="flex items-center justify-center gap-4 mb-5">
+                            <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Bandeira do Brasil" style="height:56px;border-radius:6px">
+                            <img src="https://z-cdn-media.chatglm.cn/files/0149495c-6cc4-4a4f-b266-96c1b8a8a135.png?auth_key=1879929902-954e9fa0001f41b399514d82a40c7440-0-69936693e802847255b3f7b4a7b8e82e" alt="Colares P2P" style="width:88px;height:88px;border-radius:50%">
+                            <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Bandeira do Brasil" style="height:56px;border-radius:6px">
+                        </div>
+                        <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-3">
+                            <span style="color:var(--green)">Colares</span> <span style="color:var(--yellow)">P2P</span>
+                        </h2>
+                        <p class="text-lg md:text-xl max-w-2xl mx-auto mb-2" style="color:var(--text)">
+                            Compre Bitcoin diretamente de pessoas. Sem KYC. Sem intermediário. Sem Leviatã.
+                        </p>
+                        <p class="text-sm max-w-xl mx-auto" style="color:var(--text-muted)">
+                            A rede descentralizada de Colares-PA onde você troca Pix por Bitcoin com outros humanos — não com bancos.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full mb-10">
+                        <button onclick="selectRole('admin')" class="glow-card p-7 text-center cursor-pointer" style="border-color:var(--yellow-dim)" aria-label="Painel Administrador">
+                            <div class="text-3xl mb-3" style="color:var(--yellow)"><i class="fas fa-shield-halved"></i></div>
+                            <h3 class="text-lg font-bold mb-2" style="color:var(--yellow)">Administrador</h3>
+                            <p class="text-xs" style="color:var(--text-muted)">Área restrita. Acesso exclusivo do criador Iury Lee.</p>
+                        </button>
+                        <button onclick="selectRole('vendedor')" class="glow-card p-7 text-center cursor-pointer" aria-label="Entrar como Vendedor">
+                            <div class="text-3xl mb-3" style="color:var(--green)"><i class="fas fa-coins"></i></div>
+                            <h3 class="text-lg font-bold mb-2">Vendedor</h3>
+                            <p class="text-xs" style="color:var(--text-muted)">Venda Bitcoin. Receba via Pix. Envie BTC direto pra blockchain do comprador.</p>
+                        </button>
+                        <button onclick="selectRole('comprador')" class="glow-card p-7 text-center cursor-pointer" aria-label="Entrar como Comprador">
+                            <div class="text-3xl mb-3" style="color:var(--blue)"><i class="fas fa-wallet"></i></div>
+                            <h3 class="text-lg font-bold mb-2">Comprador</h3>
+                            <p class="text-xs" style="color:var(--text-muted)">Compre Bitcoin com Pix. Cotação em tempo real. Sem KYC. Sem perguntas.</p>
+                        </button>
+                    </div>
+
+                    <!-- MANIFESTO COM TEXTO CORRIGIDO -->
+                    <div class="max-w-3xl w-full glow-card p-6 md:p-8 mb-8" style="border-color:var(--green)">
+                        <h3 class="text-lg font-bold mb-4" style="color:var(--yellow)"><i class="fas fa-bolt mr-2"></i>Por que a Colares P2P nasceu?</h3>
+                        <p class="manifesto-text text-sm md:text-base">
+                            Vivemos num país onde o <strong>Leviatã</strong> — o Estado — quer te censurar, te calar e te controlar. Quer rastrear cada centavo que você ganha, gasta ou economiza. Quer congelar sua conta, bloquear seu Pix, decidir se você pode ou não pode mandar seu dinheiro pra quem você quiser.<br><br>
+                            E os bancos? Os bancos continuam <strong>roubando você todo dia</strong> — com inflação que devora sua poupança, taxas abusivas, spread cambial, e bloqueios arbitrários. Eles lucram com o seu suor e ainda te tratam como suspeito.<br><br>
+                            A Colares P2P nasceu da revolta de um homem chamado <strong style="color:var(--yellow)">Iury Lee</strong>, que decidiu que não ia mais aceitar isso. Ele criou uma ferramenta onde as pessoas pudessem trocar <strong>liberdade</strong> — Pix por Bitcoin, pessoa pra pessoa, sem perguntar nome, CPF, ou qualquer dado.<br><br>
+                            <strong>Continue sendo roubado pelos bancos — ou confie na Colares P2P e tome o controle do seu dinheiro.</strong>
+                        </p>
+                    </div>
+
+                    <div class="max-w-3xl w-full space-y-4 mb-8">
+                        <div class="p-5 rounded-xl" style="background:var(--yellow-dim);border:1px solid rgba(255,223,0,.2)">
+                            <h4 class="text-sm font-bold mb-2" style="color:var(--yellow)"><i class="fas fa-exclamation-triangle mr-2"></i>Aviso Importante</h4>
+                            <p class="text-sm" style="color:var(--text)">A <strong>Colares P2P não segura o dinheiro de ninguém</strong>. Bitcoin fica na <strong>blockchain</strong> — a carteira apenas mostra o saldo que está na blockchain. Toda negociação é feita diretamente entre comprador e vendedor. Em caso de disputas, o admin Iury Lee tentará resolver. Se for golpe ou crime, <strong>denuncie: DISQUE 190 e faça um Boletim de Ocorrência, o famoso BO</strong>.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 justify-center mb-8">
+                        <button onclick="showView('termos')" class="btn-ghost text-sm"><i class="fas fa-file-contract mr-2"></i>Termos e Regras</button>
+                        <button onclick="showView('sobre')" class="btn-ghost text-sm"><i class="fas fa-info-circle mr-2"></i>Sobre o Projeto</button>
+                        <button onclick="showView('bitcoin')" class="btn-ghost text-sm"><i class="fas fa-book mr-2"></i>História do Bitcoin</button>
+                        <button onclick="showView('doacao')" class="btn-yellow text-sm" style="padding:10px 20px"><i class="fas fa-bolt mr-2"></i>Apoiar com Sats</button>
+                    </div>
+
+                    <footer class="text-center text-xs" style="color:var(--text-muted)">
+                        <div class="flex items-center justify-center gap-3 mb-2">
+                            <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Brasil" style="height:24px;border-radius:4px">
+                            <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin Lightning" style="height:24px">
+                        </div>
+                        <p>Todos os direitos reservados a <strong style="color:var(--yellow)">Iury Lee</strong></p>
+                        <p class="mt-1">Suporte: <span style="color:var(--green)">iurylee@tuta.io</span> | <span style="color:var(--green)">iurylee@proton.me</span></p>
+                    </footer>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ HISTÓRIA DO BITCOIN ============ -->
+        <section id="view-bitcoin" class="view">
+            <div class="max-w-3xl mx-auto px-4 py-10">
+                <button onclick="showView('landing')" class="btn-ghost mb-8 text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar</button>
+
+                <div class="text-center mb-10">
+                    <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin + Lightning" style="height:56px" class="mx-auto mb-4">
+                    <h2 class="text-3xl font-extrabold mb-2" style="color:var(--btc-orange)">A História do Bitcoin</h2>
+                    <p class="text-sm" style="color:var(--text-muted)">Do whitepaper anônimo à revolução financeira mundial</p>
+                </div>
+
+                <div class="glow-card p-6 md:p-8 mb-6" style="border-color:var(--btc-orange)">
+                    <div class="flex items-center gap-4 mb-5">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background:var(--yellow-dim);border:2px solid var(--btc-orange)">
+                            <i class="fas fa-user-secret text-2xl" style="color:var(--btc-orange)"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold" style="color:var(--yellow)">Satoshi Nakamoto</h3>
+                            <p class="text-sm" style="color:var(--text-muted)">O tio, o chapéu do vovô — o criador do Bitcoin</p>
+                        </div>
+                    </div>
+                    <p class="text-sm" style="line-height:1.8">
+                        Em 31 de outubro de 2008, uma pessoa — ou grupo — sob o pseudônimo <strong style="color:var(--yellow)">Satoshi Nakamoto</strong> publicou o whitepaper <em>"Bitcoin: A Peer-to-Peer Electronic Cash System"</em> na lista de email cryptography@metzdowd.com. Ninguém sabe quem é Satoshi. Homem? Mulher? Grupo? Não importa. O que importa é que Satoshi Nakamoto <strong style="color:var(--green)">criou a maior revolução financeira da história</strong>. Em 3 de janeiro de 2009, Satoshi minerou o bloco gênese — o bloco zero da blockchain do Bitcoin. Na coinbase desse bloco, ele gravou uma mensagem que dizia tudo: <em>"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"</em> — uma crítica direta ao sistema bancário que precisava de resgates com dinheiro público. Em 2010, Satoshi desapareceu. Última mensagem conhecida: abril de 2011. Desde então, ninguém mais ouviu falar. Mas a revolução dele continua.
+                    </p>
+                </div>
+
+                <div class="glow-card p-6 md:p-8 mb-6">
+                    <h3 class="text-lg font-bold mb-5" style="color:var(--green)"><i class="fas fa-clock-rotate-left mr-2"></i>Linha do Tempo</h3>
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">31 Out 2008</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Satoshi publica o whitepaper do Bitcoin na mailing list de criptografia.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">03 Jan 2009</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Bloco gênese minerado. Nasce a blockchain do Bitcoin. A mensagem embutida critica o resgate bancário.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">22 Mai 2010</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Laszlo Hanyecz paga 10.000 BTC por 2 pizzas. Primeira transação real com Bitcoin. O "Bitcoin Pizza Day" nasce.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2011</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Satoshi Nakamoto desaparece. A comunidade assume o projeto. O Bitcoin sobrevive sem criador.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2013</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Bitcoin atinge US$ 1.000 pela primeira vez. O mundo começa a levar a sério.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2017</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Bitcoin atinge US$ 20.000. SegWit ativado. A Lightning Network começa a ser desenvolvida.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2018</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Lightning Network lançada oficialmente. Transações instantâneas e baratas em Bitcoin se tornam realidade.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--btc-orange)"></div>
+                                <div class="w-0.5 flex-1" style="background:var(--border)"></div>
+                            </div>
+                            <div class="pb-4">
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2021</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Bitcoin atinge US$ 69.000. El Salvador adota Bitcoin como moeda oficial. A revolta contra o Leviatã ganha força mundial.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full" style="background:var(--yellow)"></div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold" style="color:var(--yellow)">2026</p>
+                                <p class="text-sm" style="color:var(--text-muted)">Nasce a Colares P2P. A revolução chega em Colares, Pará. Iury Lee cria a ferramenta de liberdade financeira peer-to-peer.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glow-card p-6 md:p-8 mb-6">
+                    <h3 class="text-lg font-bold mb-4" style="color:var(--green)"><i class="fas fa-link mr-2"></i>O que é a Blockchain?</h3>
+                    <p class="text-sm" style="line-height:1.8">
+                        O Bitcoin <strong style="color:var(--yellow)">não fica na carteira</strong>. O Bitcoin fica na <strong style="color:var(--yellow)">blockchain</strong> — um livro contábil público, descentralizado e imutável que registra todas as transações que já aconteceram. Cada bloco contém transações e está ligado ao bloco anterior, formando uma corrente (chain) impossível de alterar sem o consenso da rede.<br><br>
+                        A <strong style="color:var(--green)">carteira</strong> não guarda Bitcoin. A carteira guarda as <strong style="color:var(--green)">chaves privadas</strong> que permitem você assinar transações e provar que você é dono dos satoshis que estão na blockchain. Quando você abre sua carteira, ela consulta a blockchain e <em>mostra</em> o saldo que pertence às suas chaves. Se você perder a chave privada, você perde o acesso aos seus Bitcoin — eles continuam na blockchain, mas ninguém pode movê-los sem a chave.<br><br>
+                        Por isso na Colares P2P o vendedor envia os satoshis direto para o endereço Bitcoin ou Lightning do comprador — <strong style="color:var(--yellow)">na blockchain, onde ninguém pode confiscar, congelar ou bloquear</strong>. Nem o Leviatã.
+                    </p>
+                </div>
+
+                <div class="divider mt-10"></div>
+                <p class="text-center text-xs" style="color:var(--text-muted)">Todos os direitos reservados a <strong style="color:var(--yellow)">Iury Lee</strong></p>
+            </div>
+        </section>
+
+        <!-- ============ TERMOS E REGRAS ============ -->
+        <section id="view-termos" class="view">
+            <div class="max-w-3xl mx-auto px-4 py-10">
+                <button onclick="showView('landing')" class="btn-ghost mb-8 text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar</button>
+                <h2 class="text-3xl font-extrabold mb-2" style="color:var(--yellow)">Termos de Uso e Regras</h2>
+                <p class="text-sm mb-8" style="color:var(--text-muted)">Última atualização: Junho 2026</p>
+
+                <div class="space-y-6">
+                    <div class="glow-card p-6">
+                        <h3 class="text-lg font-bold mb-3" style="color:var(--green)"><i class="fas fa-shield-halved mr-2"></i>1. O que é a Colares P2P</h3>
+                        <p class="text-sm" style="line-height:1.8">A Colares P2P é uma plataforma descentralizada peer-to-peer que conecta compradores e vendedores de Bitcoin na cidade de Colares, Pará. Funciona inteiramente no navegador, sem servidor central, sem KYC, sem coleta de dados pessoais além de email e senha. Não é uma exchange. Não é um banco. Não é uma instituição financeira. É uma ferramenta de libertação.</p>
+                    </div>
+
+                    <div class="glow-card p-6">
+                        <h3 class="text-lg font-bold mb-3" style="color:var(--green)"><i class="fas fa-gavel mr-2"></i>2. Regras da Rede</h3>
+                        <ul class="text-sm space-y-2" style="line-height:1.8;list-style:none">
+                            <li><span style="color:var(--yellow)">&#9632;</span> Toda negociação é <strong>responsabilidade exclusiva das partes</strong>. A plataforma não segura, não custodia e não intermedeia nenhum valor.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Bitcoin fica na <strong>blockchain</strong>. A carteira apenas mostra o saldo que está registrado na blockchain. Ninguém pode congelar ou confiscar seus satoshis.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> É <strong>proibido</strong> qualquer atividade ilícita prevista em lei, incluindo lavagem de dinheiro, fraude ou golpe.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> <strong>Sem KYC</strong> — não solicitamos e nunca solicitaremos documentos pessoais.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Compradores devem enviar a <strong>chave Pix</strong> ao vendedor para receber o pagamento em reais.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Vendedores devem solicitar o <strong>endereço público Bitcoin ou Lightning</strong> do comprador para enviar os satoshis direto pra blockchain dele.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> A <strong>administração</strong> é restrita exclusivamente a <strong style="color:var(--yellow)">Iury Lee</strong>. Ninguém mais pode se cadastrar como admin.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Em caso de disputas, o admin <strong>tentará resolver</strong> como mediador, mas <strong>não garante reembolso</strong> — a plataforma não tem custódia.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Se você for vítima de <strong>golpe ou crime</strong>, <strong>denuncie à polícia: DISQUE 190 e faça um Boletim de Ocorrência, o famoso BO</strong>.</li>
+                        </ul>
+                    </div>
+
+                    <div class="glow-card p-6">
+                        <h3 class="text-lg font-bold mb-3" style="color:var(--green)"><i class="fas fa-user-shield mr-2"></i>3. Privacidade</h3>
+                        <ul class="text-sm space-y-2" style="line-height:1.8;list-style:none">
+                            <li><span style="color:var(--yellow)">&#9632;</span> Únicos dados coletados: <strong>email e senha</strong> (hasheada com SHA-256).</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Todos os dados ficam <strong>no seu navegador</strong> (localStorage). Nada é enviado a servidores.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Você pode <strong>excluir sua conta</strong> a qualquer momento, removendo email, senha e mensagens.</li>
+                            <li><span style="color:var(--yellow)">&#9632;</span> Mensagens de chat são armazenadas localmente e visíveis apenas entre as partes envolvidas.</li>
+                        </ul>
+                    </div>
+
+                    <div class="glow-card p-6">
+                        <h3 class="text-lg font-bold mb-3" style="color:var(--green)"><i class="fas fa-scale-balanced mr-2"></i>4. Isenção de Responsabilidade</h3>
+                        <p class="text-sm" style="line-height:1.8">A Colares P2P é um software livre e de código aberto. Não garantimos lucro, não garantimos proteção contra perdas financeiras, e não nos responsabilizamos por danos decorrentes do uso da plataforma. Cada usuário é <strong>único responsável</strong> por suas ações. O Bitcoin fica na blockchain — se você perder sua chave privada, ninguém pode recuperar seus satoshis. Se algo der errado, o admin tentará ajudar — mas a plataforma não tem poder de reembolso pois <strong>não custodia fundos de ninguém</strong>.</p>
+                    </div>
+
+                    <div class="glow-card p-6">
+                        <h3 class="text-lg font-bold mb-3" style="color:var(--green)"><i class="fas fa-ban mr-2"></i>5. Proibições</h3>
+                        <ul class="text-sm space-y-2" style="line-height:1.8;list-style:none">
+                            <li><span style="color:var(--danger)">&#9632;</span> Tentar se cadastrar como administrador (apenas Iury Lee).</li>
+                            <li><span style="color:var(--danger)">&#9632;</span> Criar contas falsas ou se passar por outros usuários.</li>
+                            <li><span style="color:var(--danger)">&#9632;</span> Praticar golpes, extorsão ou fraude.</li>
+                            <li><span style="color:var(--danger)">&#9632;</span> Usar a plataforma para atividades ilícitas.</li>
+                            <li><span style="color:var(--danger)">&#9632;</span> Tentar explorar vulnerabilidades do sistema.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="divider mt-10"></div>
+                <p class="text-center text-xs" style="color:var(--text-muted)">Todos os direitos reservados a <strong style="color:var(--yellow)">Iury Lee</strong></p>
+            </div>
+        </section>
+
+        <!-- ============ SOBRE ============ -->
+        <section id="view-sobre" class="view">
+            <div class="max-w-3xl mx-auto px-4 py-10">
+                <button onclick="showView('landing')" class="btn-ghost mb-8 text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar</button>
+
+                <div class="text-center mb-10">
+                    <img src="https://z-cdn-media.chatglm.cn/files/0149495c-6cc4-4a4f-b266-96c1b8a8a135.png?auth_key=1879929902-954e9fa0001f41b399514d82a40c7440-0-69936693e802847255b3f7b4a7b8e82e" alt="Colares P2P" style="width:100px;height:100px;border-radius:50%" class="mx-auto mb-4">
+                    <h2 class="text-3xl font-extrabold mb-2" style="color:var(--green)">Sobre a Colares P2P</h2>
+                </div>
+
+                <!-- MANIFESTO COM TEXTO CORRIGIDO -->
+                <div class="glow-card p-6 md:p-8 mb-6" style="border-color:var(--green)">
+                    <h3 class="text-lg font-bold mb-4" style="color:var(--yellow)"><i class="fas fa-fire mr-2"></i>A Revolta</h3>
+                    <p class="manifesto-text">
+                        Vivemos num país onde o <strong>Leviatã</strong> — o Estado — quer te censurar, te calar e te controlar. Quer rastrear cada centavo que você ganha, gasta ou economiza. Quer congelar sua conta, bloquear seu Pix, decidir se você pode ou não pode mandar seu dinheiro pra quem você quiser.<br><br>
+                        E os bancos? Os bancos continuam <strong>roubando você todo dia</strong> — com inflação que devora sua poupança, taxas abusivas, spread cambial, e bloqueios arbitrários. Eles lucram com o seu suor e ainda te tratam como suspeito.<br><br>
+                        A Colares P2P nasceu da revolta de um homem chamado <strong style="color:var(--yellow)">Iury Lee</strong>, que decidiu que não ia mais aceitar isso. Ele criou uma ferramenta onde as pessoas pudessem trocar <strong>liberdade</strong> — Pix por Bitcoin, pessoa pra pessoa, sem perguntar nome, CPF, ou qualquer dado.<br><br>
+                        <strong>Continue sendo roubado pelos bancos — ou confie na Colares P2P e tome o controle do seu dinheiro.</strong>
+                    </p>
+                </div>
+
+                <div class="glow-card p-6 md:p-8 mb-6">
+                    <h3 class="text-lg font-bold mb-4" style="color:var(--green)"><i class="fas fa-lock-open mr-2"></i>Por que confiar na Colares P2P?</h3>
+                    <ul class="text-sm space-y-3" style="line-height:1.8;list-style:none">
+                        <li><span style="color:var(--yellow)"><i class="fas fa-check-circle mr-2"></i></span><strong>Transparente:</strong> O código roda no seu navegador. Você pode inspecionar. Sem backdoor, sem servidor escondido.</li>
+                        <li><span style="color:var(--yellow)"><i class="fas fa-check-circle mr-2"></i></span><strong>Descentralizada:</strong> Não há servidor central. Os dados ficam no seu navegador. A comunicação entre usuários acontece via BroadcastChannel.</li>
+                        <li><span style="color:var(--yellow)"><i class="fas fa-check-circle mr-2"></i></span><strong>Sem custódia:</strong> A plataforma não segura o dinheiro de ninguém. Nunca. Bitcoin fica na <strong>blockchain</strong> — a carteira apenas mostra o saldo que está lá. Seu Bitcoin, suas chaves, sua soberania.</li>
+                        <li><span style="color:var(--yellow)"><i class="fas fa-check-circle mr-2"></i></span><strong>Sem KYC:</strong> Não pedimos documentos. Não rastreamos identidade. Seu email e senha são os únicos dados — e você pode excluí-los quando quiser.</li>
+                        <li><span style="color:var(--yellow)"><i class="fas fa-check-circle mr-2"></i></span><strong>Admin acessível:</strong> Em caso de problemas, o admin <strong>Iury Lee</strong> está disponível para tentar resolver. Se for crime, denuncie: <strong>DISQUE 190 e faça um Boletim de Ocorrência, o famoso BO</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="glow-card p-6 md:p-8" style="border-color:var(--yellow)">
+                    <h3 class="text-lg font-bold mb-4" style="color:var(--yellow)"><i class="fas fa-bolt mr-2"></i>Bitcoin e Lightning</h3>
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin e Lightning Network" class="logo-btc-ln">
+                    </div>
+                    <p class="text-sm" style="line-height:1.8">A Colares P2P suporta tanto transações <strong>on-chain</strong> (endereço Bitcoin público, registradas diretamente na blockchain) quanto via <strong>Lightning Network</strong> (instantânea, com taxas mínimas, também assentada na blockchain). Você escolhe como quer receber seus satoshis. A Lightning é a verdadeira rede peer-to-peer do Bitcoin — rápida, barata e sem permissão. Satoshi Nakamoto, o tio, o chapéu do vovô, ficaria orgulhoso.</p>
+                </div>
+
+                <div class="divider mt-10"></div>
+                <p class="text-center text-xs" style="color:var(--text-muted)">Todos os direitos reservados a <strong style="color:var(--yellow)">Iury Lee</strong></p>
+            </div>
+        </section>
+
+        <!-- ============ DOAÇÃO ============ -->
+        <section id="view-doacao" class="view">
+            <div class="max-w-xl mx-auto px-4 py-10">
+                <button onclick="showView('landing')" class="btn-ghost mb-8 text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar</button>
+                <div class="text-center mb-8">
+                    <div class="text-5xl mb-4" style="color:var(--btc-orange)"><i class="fas fa-bolt"></i></div>
+                    <h2 class="text-3xl font-extrabold mb-2" style="color:var(--yellow)">Apoie a Colares P2P</h2>
+                    <p class="text-sm" style="color:var(--text-muted)">Doações voluntárias em satoshis via Lightning Network para manter o site no ar.</p>
+                </div>
+                <div class="glow-card p-8 text-center" style="border-color:var(--yellow);animation:pulse-glow 4s ease-in-out infinite">
+                    <p class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text-muted)">Endereço Lightning (Wallet of Satoshi)</p>
+                    <div class="p-4 rounded-xl mb-4" style="background:var(--bg);border:1px solid var(--border)">
+                        <p class="text-lg font-bold break-all" style="color:var(--yellow);font-family:'Sora',sans-serif;word-break:break-all">ironiccrane900@walletofsatoshi.com</p>
+                    </div>
+                    <button onclick="copyDonationAddress()" class="btn-primary"><i class="fas fa-copy mr-2"></i>Copiar Endereço</button>
+                    <p class="text-xs mt-4" style="color:var(--text-muted)">Cada satoshi conta. Obrigado por manter a liberdade viva.</p>
+                </div>
+                <div class="divider mt-10"></div>
+                <p class="text-center text-xs" style="color:var(--text-muted)">Todos os direitos reservados a <strong style="color:var(--yellow)">Iury Lee</strong></p>
+            </div>
+        </section>
+
+        <!-- ============ AUTH ============ -->
+        <section id="view-auth" class="view">
+            <div class="min-h-screen flex items-center justify-center px-4">
+                <div class="glow-card p-8 md:p-10 max-w-md w-full">
+                    <button onclick="showView('landing')" class="btn-ghost mb-6 text-sm"><i class="fas fa-arrow-left mr-2"></i>Voltar</button>
+                    <div class="flex items-center gap-3 mb-6">
+                        <img src="https://z-cdn-media.chatglm.cn/files/0149495c-6cc4-4a4f-b266-96c1b8a8a135.png?auth_key=1879929902-954e9fa0001f41b399514d82a40c7440-0-69936693e802847255b3f7b4a7b8e82e" alt="Colares P2P" style="width:44px;height:44px;border-radius:50%">
+                        <h2 id="auth-title" class="text-xl font-bold"></h2>
+                    </div>
+                    <p id="auth-subtitle" class="text-sm mb-6" style="color:var(--text-muted)"></p>
+
+                    <div id="auth-admin-warning" class="hidden p-4 rounded-xl mb-5" style="background:var(--danger-dim);border:1px solid rgba(229,57,53,.3)">
+                        <p class="text-sm font-bold" style="color:var(--danger)"><i class="fas fa-lock mr-2"></i>Área Restrita</p>
+                        <p class="text-xs mt-1" style="color:var(--text)">O painel de administração é exclusivo de <strong style="color:var(--yellow)">Iury Lee</strong>. Tentativas não autorizadas serão negadas.</p>
+                    </div>
+
+                    <form id="auth-form" onsubmit="handleAuth(event)">
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium mb-2" style="color:var(--text-muted)">Email</label>
+                            <input type="email" id="auth-email" class="input-field" placeholder="seu@email.com" required autocomplete="email">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2" style="color:var(--text-muted)">Senha</label>
+                            <div class="relative">
+                                <input type="password" id="auth-password" class="input-field pr-12" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="current-password">
+                                <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-muted);background:none;border:none;cursor:pointer" aria-label="Mostrar senha">
+                                    <i id="eye-icon" class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary w-full" id="auth-submit-btn">Entrar</button>
+                    </form>
+                    <div class="mt-6 text-center">
+                        <button id="auth-toggle-btn" onclick="toggleAuthMode()" class="text-sm cursor-pointer" style="color:var(--yellow);background:none;border:none;font-family:'DM Sans',sans-serif">
+                            Criar conta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ ADMIN PANEL ============ -->
+        <section id="view-admin" class="view">
+            <header class="border-b" style="border-color:var(--border);background:var(--bg2)">
+                <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <img src="https://z-cdn-media.chatglm.cn/files/0149495c-6cc4-4a4f-b266-96c1b8a8a135.png?auth_key=1879929902-954e9fa0001f41b399514d82a40c7440-0-69936693e802847255b3f7b4a7b8e82e" alt="Admin" style="width:36px;height:36px;border-radius:50%">
+                        <div>
+                            <h2 class="text-lg font-bold" style="color:var(--yellow)"><i class="fas fa-shield-halved mr-2"></i>Painel Admin</h2>
+                            <p class="text-xs" style="color:var(--text-muted)">Área restrita — Iury Lee</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Brasil" style="height:28px;border-radius:4px">
+                        <span id="admin-email-display" class="text-sm" style="color:var(--green)"></span>
+                        <button onclick="logout()" class="btn-ghost text-sm"><i class="fas fa-right-from-bracket mr-1"></i>Sair</button>
+                    </div>
+                </div>
+            </header>
+            <main class="max-w-6xl mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="admin-stats"></div>
+                <div class="glow-card overflow-hidden mb-8">
+                    <div class="p-6 border-b" style="border-color:var(--border)">
+                        <h3 class="text-lg font-bold" style="color:var(--yellow)"><i class="fas fa-users mr-2"></i>Usuários Cadastrados</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="admin-table">
+                            <thead><tr><th>Email</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead>
+                            <tbody id="admin-users-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="glow-card p-6">
+                        <h3 class="text-sm font-bold mb-3" style="color:var(--green)"><i class="fas fa-headset mr-2"></i>Emails de Suporte</h3>
+                        <p class="text-sm mb-1" style="color:var(--text-muted)"><i class="fas fa-envelope mr-2" style="color:var(--green)"></i>iurylee@tuta.io</p>
+                        <p class="text-sm" style="color:var(--text-muted)"><i class="fas fa-envelope mr-2" style="color:var(--green)"></i>iurylee@proton.me</p>
+                    </div>
+                    <div class="glow-card p-6">
+                        <h3 class="text-sm font-bold mb-3" style="color:var(--btc-orange)"><i class="fas fa-bolt mr-2"></i>Doações Lightning</h3>
+                        <p class="text-xs break-all" style="color:var(--text-muted)">ironiccrane900@walletofsatoshi.com</p>
+                    </div>
+                </div>
+                <div class="p-6 glow-card" style="border-color:rgba(229,57,53,.2)">
+                    <h3 class="text-lg font-bold mb-2" style="color:var(--danger)"><i class="fas fa-skull-crossbones mr-2"></i>Zona de Perigo</h3>
+                    <p class="text-sm mb-4" style="color:var(--text-muted)">Excluir sua conta de administrador remove todos os seus dados permanentemente. O painel admin ficará inacessível até novo cadastro autorizado.</p>
+                    <button onclick="deleteOwnAccount()" class="btn-danger"><i class="fas fa-trash mr-2"></i>Excluir Minha Conta</button>
+                </div>
+            </main>
+        </section>
+
+        <!-- ============ VENDEDOR PANEL ============ -->
+        <section id="view-vendedor" class="view">
+            <header class="border-b" style="border-color:var(--border);background:var(--bg2)">
+                <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin" style="height:32px">
+                        <h2 class="text-lg font-bold" style="color:var(--green)"><i class="fas fa-coins mr-2"></i>Painel Vendedor</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="vendedor-email-display" class="text-sm" style="color:var(--text-muted)"></span>
+                        <button onclick="logout()" class="btn-ghost text-sm"><i class="fas fa-right-from-bracket mr-1"></i>Sair</button>
+                    </div>
+                </div>
+            </header>
+            <main class="max-w-6xl mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1">
+                        <div class="glow-card p-5">
+                            <h3 class="text-sm font-bold mb-4 uppercase tracking-wider" style="color:var(--yellow);font-family:'Sora',sans-serif">Conversas</h3>
+                            <div id="vendedor-chat-list" class="space-y-2" style="max-height:460px;overflow-y:auto"></div>
+                        </div>
+                        <div class="glow-card p-5 mt-4" style="border-color:rgba(229,57,53,.2)">
+                            <h4 class="text-sm font-bold mb-2" style="color:var(--danger);font-family:'Sora',sans-serif">Excluir Conta</h4>
+                            <p class="text-xs mb-3" style="color:var(--text-muted)">Remove sua conta, email e senha permanentemente.</p>
+                            <button onclick="deleteOwnAccount()" class="btn-danger text-xs"><i class="fas fa-trash mr-1"></i>Excluir Minha Conta</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <div class="glow-card flex flex-col" style="height:520px">
+                            <div id="vendedor-chat-header" class="p-4 border-b" style="border-color:var(--border)"><p class="text-sm" style="color:var(--text-muted)">Selecione uma conversa para começar</p></div>
+                            <div id="vendedor-chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" style="background:var(--bg)"></div>
+                            <div id="vendedor-chat-input" class="p-4 border-t hidden" style="border-color:var(--border)">
+                                <form onsubmit="sendMessage('vendedor',event)" class="flex gap-3">
+                                    <input type="text" id="vendedor-msg-input" class="input-field flex-1" placeholder="Solicite endereço BTC ou envie dados Pix..." autocomplete="off">
+                                    <button type="submit" class="btn-primary px-5"><i class="fas fa-paper-plane"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- ============ COMPRADOR PANEL ============ -->
+        <section id="view-comprador" class="view">
+            <header class="border-b" style="border-color:var(--border);background:var(--bg2)">
+                <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin" style="height:32px">
+                        <h2 class="text-lg font-bold" style="color:var(--blue)"><i class="fas fa-wallet mr-2"></i>Painel Comprador</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Brasil" style="height:28px;border-radius:4px">
+                        <span id="comprador-email-display" class="text-sm" style="color:var(--text-muted)"></span>
+                        <button onclick="logout()" class="btn-ghost text-sm"><i class="fas fa-right-from-bracket mr-1"></i>Sair</button>
+                    </div>
+                </div>
+            </header>
+            <main class="max-w-6xl mx-auto px-4 py-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 space-y-5">
+                        <div class="glow-card p-6" style="animation:pulse-glow 4s ease-in-out infinite;border-color:var(--green)">
+                            <div class="flex items-center gap-4 mb-5">
+                                <img src="https://z-cdn-media.chatglm.cn/files/8780aa53-0903-42a2-9369-759f48f8c472.png?auth_key=1879929902-329eeee59644464c9c0d7d88f11e4afc-0-1dc6b721b327deabe1fdd175460e90a8" alt="Bitcoin + Lightning" style="height:48px">
+                                <div>
+                                    <p class="text-xs font-medium uppercase tracking-wider" style="color:var(--text-muted)">Bitcoin / BRL</p>
+                                    <p id="btc-price-display" class="text-2xl font-bold" style="font-family:'Sora',sans-serif;color:var(--yellow)">---</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 mb-5">
+                                <img src="https://z-cdn-media.chatglm.cn/files/f41b5d3e-c33a-4a29-b0b1-7335821dd3b1.jpg?auth_key=1879931308-4f8c38292cae4cb19b7649f45e20a3b5-0-4788fd0ee1330ce15dae267c4571af7e" alt="Bandeira do Brasil" style="height:36px;border-radius:5px">
+                                <span class="text-sm font-medium" style="color:var(--text-muted)">Real Brasileiro</span>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2" style="color:var(--text-muted)">Valor em Reais (R$)</label>
+                                <input type="number" id="brl-input" class="input-field text-lg font-bold" placeholder="100,00" min="1" step="0.01" oninput="convertBrlToSats()" style="font-family:'Sora',sans-serif">
+                            </div>
+                            <div class="p-4 rounded-xl" style="background:var(--bg);border:1px solid var(--border)">
+                                <p class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text-muted)">Você receberá na blockchain</p>
+                                <p id="sats-display" class="sat-display">0</p>
+                                <p class="text-xs mt-1" style="color:var(--text-muted)">satoshis</p>
+                            </div>
+                        </div>
+                        <div class="glow-card p-5">
+                            <h3 class="text-sm font-bold mb-3 uppercase tracking-wider" style="color:var(--yellow);font-family:'Sora',sans-serif">Vendedores Online</h3>
+                            <div id="vendedores-list" class="space-y-2"></div>
+                        </div>
+                        <div class="glow-card p-5" style="border-color:rgba(229,57,53,.2)">
+                            <h4 class="text-sm font-bold mb-2" style="color:var(--danger);font-family:'Sora',sans-serif">Excluir Conta</h4>
+                            <p class="text-xs mb-3" style="color:var(--text-muted)">Remove sua conta, email e senha permanentemente.</p>
+                            <button onclick="deleteOwnAccount()" class="btn-danger text-xs"><i class="fas fa-trash mr-1"></i>Excluir Minha Conta</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <div class="glow-card flex flex-col" style="height:520px">
+                            <div id="comprador-chat-header" class="p-4 border-b" style="border-color:var(--border)"><p class="text-sm" style="color:var(--text-muted)">Selecione um vendedor para negociar</p></div>
+                            <div id="comprador-chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" style="background:var(--bg)"></div>
+                            <div id="comprador-chat-input" class="p-4 border-t hidden" style="border-color:var(--border)">
+                                <form onsubmit="sendMessage('comprador',event)" class="flex gap-3">
+                                    <input type="text" id="comprador-msg-input" class="input-field flex-1" placeholder="Envie sua chave Pix ou endereço Bitcoin/Lightning..." autocomplete="off">
+                                    <button type="submit" class="btn-primary px-5"><i class="fas fa-paper-plane"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+    const state = { currentUser: null, selectedRole: null, isRegister: false, activeChatWith: null, btcPriceBRL: 0, chatPollInterval: null };
+    const ADMIN_EMAILS = ['iurylee@tuta.io', 'iurylee@proton.me'];
+    const channel = new BroadcastChannel('colares-p2p-channel');
+
+    function uuid(){return 'xxxx-xxxx-xxxx'.replace(/x/g,()=>Math.floor(Math.random()*16).toString(16))}
+    async function hashPassword(p){const e=new TextEncoder().encode(p);const b=await crypto.subtle.digest('SHA-256',e);return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+    function timeAgo(t){const d=Date.now()-t;if(d<60000)return 'agora';if(d<3600000)return Math.floor(d/60000)+'min';if(d<86400000)return Math.floor(d/3600000)+'h';return new Date(t).toLocaleDateString('pt-BR')}
+    function formatBRL(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+    function showToast(m,t='info'){const c=document.getElementById('toast-container');const e=document.createElement('div');e.className=`toast ${t}`;const i=t==='success'?'check-circle':t==='error'?'exclamation-circle':'info-circle';e.innerHTML=`<i class="fas fa-${i} mr-2"></i>${m}`;c.appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transition='opacity 0.3s';setTimeout(()=>e.remove(),300)},3500)}
+    function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+    function getUsers(){try{return JSON.parse(localStorage.getItem('colares_users')||'[]')}catch{return[]}}
+    function saveUsers(u){localStorage.setItem('colares_users',JSON.stringify(u));channel.postMessage({type:'users_updated'})}
+    function getMessages(){try{return JSON.parse(localStorage.getItem('colares_messages')||'[]')}catch{return[]}}
+    function saveMessages(m){localStorage.setItem('colares_messages',JSON.stringify(m));channel.postMessage({type:'messages_updated'})}
+    function setOnlineStatus(id,o){let m={};try{m=JSON.parse(localStorage.getItem('colares_online')||'{}')}catch{}if(o)m[id]=Date.now();else delete m[id];localStorage.setItem('colares_online',JSON.stringify(m));channel.postMessage({type:'online_updated'})}
+    function getOnlineUsers(){let m={};try{m=JSON.parse(localStorage.getItem('colares_online')||'{}')}catch{}const n=Date.now();const r={};for(const[id,t]of Object.entries(m)){if(n-t<60000)r[id]=true}return r}
+    function startHeartbeat(){if(!state.currentUser)return;setOnlineStatus(state.currentUser.id,true);setInterval(()=>{if(state.currentUser)setOnlineStatus(state.currentUser.id,true)},30000)}
+
+    function showView(n){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const e=document.getElementById('view-'+n);if(e)e.classList.add('active')}
+
+    function selectRole(r){state.selectedRole=r;state.isRegister=false;updateAuthUI();showView('auth')}
+    function updateAuthUI(){const n={admin:'Administrador',vendedor:'Vendedor',comprador:'Comprador'};const c={admin:'var(--yellow)',vendedor:'var(--green)',comprador:'var(--blue)'};const w=document.getElementById('auth-admin-warning');document.getElementById('auth-title').textContent=state.isRegister?`Criar Conta — ${n[state.selectedRole]}`:`Entrar — ${n[state.selectedRole]}`;document.getElementById('auth-title').style.color=c[state.selectedRole];document.getElementById('auth-subtitle').textContent=state.isRegister?'Cadastre-se com email e senha para acessar a rede.':'Use seu email e senha para entrar na rede.';document.getElementById('auth-submit-btn').textContent=state.isRegister?'Criar Conta':'Entrar';document.getElementById('auth-toggle-btn').textContent=state.isRegister?'Já tem conta? Entrar':'Não tem conta? Criar conta';if(state.selectedRole==='admin'){w.classList.remove('hidden')}else{w.classList.add('hidden')}}
+    function toggleAuthMode(){state.isRegister=!state.isRegister;updateAuthUI()}
+    function togglePasswordVisibility(){const i=document.getElementById('auth-password');const e=document.getElementById('eye-icon');if(i.type==='password'){i.type='text';e.className='fas fa-eye-slash'}else{i.type='password';e.className='fas fa-eye'}}
+
+    async function handleAuth(ev){ev.preventDefault();const email=document.getElementById('auth-email').value.trim().toLowerCase();const password=document.getElementById('auth-password').value;const role=state.selectedRole;if(!email||!password){showToast('Preencha todos os campos.','error');return}if(role==='admin'&&!ADMIN_EMAILS.includes(email)){showToast('Acesso negado. Painel admin restrito a Iury Lee.','error');return}const hash=await hashPassword(password);const users=getUsers();if(state.isRegister){if(users.find(u=>u.email===email&&u.type===role)){showToast('Já existe uma conta com esse email.','error');return}if(role==='admin'&&!ADMIN_EMAILS.includes(email)){showToast('Acesso negado. Apenas Iury Lee pode ser admin.','error');return}const nu={id:uuid(),email,passwordHash:hash,type:role,createdAt:Date.now()};users.push(nu);saveUsers(users);state.currentUser=nu;setOnlineStatus(nu.id,true);startHeartbeat();showToast('Conta criada com sucesso!','success');enterPanel()}else{const found=users.find(u=>u.email===email&&u.type===role&&u.passwordHash===hash);if(!found){showToast('Email ou senha incorretos.','error');return}state.currentUser=found;setOnlineStatus(found.id,true);startHeartbeat();showToast('Login realizado!','success');enterPanel()}}
+    function enterPanel(){const r=state.currentUser.type;showView(r);if(r==='admin')renderAdminPanel();else if(r==='vendedor')renderVendedorPanel();else if(r==='comprador')renderCompradorPanel();startChatPoll()}
+    function logout(){if(state.currentUser)setOnlineStatus(state.currentUser.id,false);state.currentUser=null;state.activeChatWith=null;if(state.chatPollInterval)clearInterval(state.chatPollInterval);showView('landing');showToast('Você saiu da rede.','info')}
+
+    function deleteOwnAccount(){if(!state.currentUser)return;const id=state.currentUser.id;let u=getUsers();u=u.filter(x=>x.id!==id);saveUsers(u);let m=getMessages();m=m.filter(x=>x.from!==id&&x.to!==id);saveMessages(m);setOnlineStatus(id,false);state.currentUser=null;state.activeChatWith=null;if(state.chatPollInterval)clearInterval(state.chatPollInterval);showView('landing');showToast('Conta excluída permanentemente.','success')}
+    function deleteUserByAdmin(id){let u=getUsers();const t=u.find(x=>x.id===id);if(!t)return;u=u.filter(x=>x.id!==id);saveUsers(u);let m=getMessages();m=m.filter(x=>x.from!==id&&x.to!==id);saveMessages(m);setOnlineStatus(id,false);showToast(`Usuário ${t.email} removido.`,'success');renderAdminPanel()}
+
+    function copyDonationAddress(){navigator.clipboard.writeText('ironiccrane900@walletofsatoshi.com').then(()=>showToast('Endereço Lightning copiado!','success')).catch(()=>showToast('Erro ao copiar. Copie manualmente.','error'))}
+
+    function renderAdminPanel(){const user=state.currentUser;document.getElementById('admin-email-display').textContent=user.email;const users=getUsers();const online=getOnlineUsers();const v=users.filter(u=>u.type==='vendedor').length;const c=users.filter(u=>u.type==='comprador').length;const o=Object.keys(online).length;document.getElementById('admin-stats').innerHTML=`<div class="glow-card p-5"><p class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text-muted)">Total Usuários</p><p class="text-3xl font-bold" style="font-family:'Sora',sans-serif;color:var(--yellow)">${users.length}</p></div><div class="glow-card p-5"><p class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text-muted)">Vendedores</p><p class="text-3xl font-bold" style="font-family:'Sora',sans-serif;color:var(--green)">${v}</p></div><div class="glow-card p-5"><p class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text-muted)">Compradores</p><p class="text-3xl font-bold" style="font-family:'Sora',sans-serif;color:var(--blue)">${c}</p></div><div class="glow-card p-5"><p class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text-muted)">Online Agora</p><p class="text-3xl font-bold" style="font-family:'Sora',sans-serif;color:var(--green)">${o}</p></div>`;document.getElementById('admin-users-body').innerHTML=users.map(u=>{const isOn=online[u.id];const rc=`role-${u.type}`;const rl=u.type.charAt(0).toUpperCase()+u.type.slice(1);return `<tr><td style="color:var(--text)">${u.email}</td><td><span class="role-badge ${rc}">${rl}</span></td><td>${isOn?'<span class="online-dot"></span> Online':'<span class="offline-dot"></span> Offline'}</td><td>${u.id!==user.id?`<button onclick="deleteUserByAdmin('${u.id}')" class="btn-danger text-xs"><i class="fas fa-trash mr-1"></i>Excluir</button>`:'<span class="role-badge role-admin">Você</span>'}</td></tr>`}).join('')}
+
+    function renderVendedorPanel(){document.getElementById('vendedor-email-display').textContent=state.currentUser.email;renderVendedorChatList()}
+    function renderVendedorChatList(){const users=getUsers();const msgs=getMessages();const online=getOnlineUsers();const myId=state.currentUser.id;const cids=new Set();msgs.forEach(m=>{if(m.from===myId)cids.add(m.to);if(m.to===myId)cids.add(m.from)});const contacts=users.filter(u=>cids.has(u.id)&&u.type==='comprador');const list=document.getElementById('vendedor-chat-list');if(contacts.length===0){list.innerHTML=`<p class="text-sm" style="color:var(--text-muted)">Nenhuma conversa ainda. Compradores aparecerão aqui.</p>`;return}list.innerHTML=contacts.map(c=>{const isActive=state.activeChatWith===c.id;const isOn=online[c.id];const chat=msgs.filter(m=>(m.from===myId&&m.to===c.id)||(m.from===c.id&&m.to===myId));const last=chat.length>0?chat[chat.length-1]:null;return `<button onclick="openChat('${c.id}','vendedor')" class="w-full text-left p-3 rounded-xl transition-all" style="background:${isActive?'var(--card-hover)':'transparent'};border:1px solid ${isActive?'var(--green)':'transparent'};cursor:pointer"><div class="flex items-center gap-3">${isOn?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}<div class="flex-1 min-w-0"><p class="text-sm font-medium truncate" style="color:var(--text)">${c.email}</p><p class="text-xs truncate" style="color:var(--text-muted)">${last?last.text.substring(0,40):'Sem mensagens'}</p></div>${last?`<span class="text-xs" style="color:var(--text-muted)">${timeAgo(last.timestamp)}</span>`:''}</div></button>`}).join('')}
+
+    async function renderCompradorPanel(){document.getElementById('comprador-email-display').textContent=state.currentUser.email;await fetchBtcPrice();renderVendedoresList();if(state.activeChatWith)renderChatMessages('comprador');convertBrlToSats()}
+    function renderVendedoresList(){const users=getUsers();const online=getOnlineUsers();const vendedores=users.filter(u=>u.type==='vendedor');const list=document.getElementById('vendedores-list');if(vendedores.length===0){list.innerHTML=`<p class="text-sm" style="color:var(--text-muted)">Nenhum vendedor cadastrado ainda.</p>`;return}list.innerHTML=vendedores.map(v=>{const isOn=online[v.id];const isActive=state.activeChatWith===v.id;return `<button onclick="openChat('${v.id}','comprador')" class="w-full text-left p-3 rounded-xl transition-all flex items-center gap-3" style="background:${isActive?'var(--card-hover)':'transparent'};border:1px solid ${isActive?'var(--green)':'var(--border)'};cursor:pointer">${isOn?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}<div class="flex-1 min-w-0"><p class="text-sm font-medium truncate" style="color:var(--text)">${v.email}</p><p class="text-xs" style="color:var(--text-muted)">${isOn?'Disponível':'Offline'}</p></div><i class="fas fa-comment" style="color:var(--yellow)"></i></button>`}).join('')}
+
+    async function fetchBtcPrice(){try{const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl');const d=await r.json();if(d&&d.bitcoin&&d.bitcoin.brl){state.btcPriceBRL=d.bitcoin.brl;document.getElementById('btc-price-display').textContent=formatBRL(state.btcPriceBRL);convertBrlToSats()}}catch{const c=localStorage.getItem('colares_btc_price');if(c){state.btcPriceBRL=parseFloat(c);document.getElementById('btc-price-display').textContent=formatBRL(state.btcPriceBRL);convertBrlToSats()}else{document.getElementById('btc-price-display').textContent='Indisponível'}}if(state.btcPriceBRL>0)localStorage.setItem('colares_btc_price',state.btcPriceBRL.toString())}
+    function convertBrlToSats(){const v=parseFloat(document.getElementById('brl-input').value)||0;const d=document.getElementById('sats-display');if(state.btcPriceBRL<=0||v<=0){d.textContent='0';return}const btc=v/state.btcPriceBRL;const sats=Math.floor(btc*100000000);d.textContent=sats.toLocaleString('pt-BR')}
+    setInterval(()=>{if(state.currentUser&&state.currentUser.type==='comprador')fetchBtcPrice()},60000);
+
+    function openChat(userId,panelType){state.activeChatWith=userId;const users=getUsers();const other=users.find(u=>u.id===userId);if(!other)return;const online=getOnlineUsers();if(panelType==='vendedor'){document.getElementById('vendedor-chat-header').innerHTML=`<div class="flex items-center gap-3">${online[userId]?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}<div><p class="text-sm font-bold" style="color:var(--text)">${other.email}</p><p class="text-xs" style="color:var(--text-muted)">Comprador</p></div></div>`;document.getElementById('vendedor-chat-input').classList.remove('hidden');renderVendedorChatList()}else{document.getElementById('comprador-chat-header').innerHTML=`<div class="flex items-center gap-3">${online[userId]?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}<div><p class="text-sm font-bold" style="color:var(--text)">${other.email}</p><p class="text-xs" style="color:var(--text-muted)">Vendedor</p></div></div>`;document.getElementById('comprador-chat-input').classList.remove('hidden');renderVendedoresList()}renderChatMessages(panelType)}
+    function renderChatMessages(pt){if(!state.activeChatWith||!state.currentUser)return;const msgs=getMessages();const myId=state.currentUser.id;const otherId=state.activeChatWith;const conv=msgs.filter(m=>(m.from===myId&&m.to===otherId)||(m.from===otherId&&m.to===myId)).sort((a,b)=>a.timestamp-b.timestamp);const cid=pt==='vendedor'?'vendedor-chat-messages':'comprador-chat-messages';const container=document.getElementById(cid);container.innerHTML=conv.map(m=>{const sent=m.from===myId;return `<div class="flex flex-col ${sent?'items-end':'items-start'}"><div class="chat-bubble ${sent?'sent':'received'}">${escapeHtml(m.text)}</div><span class="chat-time ${sent?'text-right':'text-left'}">${timeAgo(m.timestamp)}</span></div>`}).join('');container.scrollTop=container.scrollHeight}
+    function sendMessage(pt,e){e.preventDefault();const iid=pt==='vendedor'?'vendedor-msg-input':'comprador-msg-input';const input=document.getElementById(iid);const text=input.value.trim();if(!text||!state.activeChatWith||!state.currentUser)return;const msg={id:uuid(),from:state.currentUser.id,to:state.activeChatWith,text,timestamp:Date.now()};const msgs=getMessages();msgs.push(msg);saveMessages(msgs);input.value='';renderChatMessages(pt);if(pt==='vendedor')renderVendedorChatList()}
+    function startChatPoll(){if(state.chatPollInterval)clearInterval(state.chatPollInterval);state.chatPollInterval=setInterval(()=>{if(!state.currentUser)return;const r=state.currentUser.type;if(r==='admin')renderAdminPanel();else if(r==='vendedor'){renderVendedorChatList();if(state.activeChatWith)renderChatMessages('vendedor')}else if(r==='comprador'){renderVendedoresList();if(state.activeChatWith)renderChatMessages('comprador')}},2000)}
+
+    channel.onmessage=(ev)=>{const d=ev.data;if(!state.currentUser)return;if(d.type==='messages_updated'){const r=state.currentUser.type;if(r==='vendedor'&&state.activeChatWith)renderChatMessages('vendedor');if(r==='comprador'&&state.activeChatWith)renderChatMessages('comprador')}if(d.type==='users_updated'||d.type==='online_updated'){const r=state.currentUser.type;if(r==='admin')renderAdminPanel();if(r==='vendedor')renderVendedorChatList();if(r==='comprador')renderVendedoresList()}};
+
+    (function(){const canvas=document.getElementById('bg-canvas');const ctx=canvas.getContext('2d');let w,h;const particles=[];const COUNT=50;function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight}resize();window.addEventListener('resize',resize);for(let i=0;i<COUNT;i++){const isYellow=Math.random()>0.55;particles.push({x:Math.random()*(w||800),y:Math.random()*(h||600),vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.4,radius:Math.max(1,Math.random()*2.5),alpha:Math.random()*0.5+0.2,alphaDir:(Math.random()-0.5)*0.008,color:isYellow?'#ffdf00':'#009c3b'})}function animate(){ctx.clearRect(0,0,w,h);const grad=ctx.createRadialGradient(w*0.3,h*0.3,0,w*0.5,h*0.5,Math.max(w,h));grad.addColorStop(0,'rgba(0,40,15,0.25)');grad.addColorStop(1,'rgba(5,10,5,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.alpha+=p.alphaDir;if(p.alpha>0.75||p.alpha<0.08)p.alphaDir*=-1;if(p.x<-10)p.x=w+10;if(p.x>w+10)p.x=-10;if(p.y<-10)p.y=h+10;if(p.y>h+10)p.y=-10;ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,p.alpha));ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0.5,p.radius),0,Math.PI*2);ctx.fillStyle=p.color;ctx.shadowBlur=18;ctx.shadowColor=p.color;ctx.fill();ctx.restore()}requestAnimationFrame(animate)}animate()})();
+
+    window.addEventListener('beforeunload',()=>{if(state.currentUser)setOnlineStatus(state.currentUser.id,false)});
+    showView('landing');
+    </script>
+</body>
+</html>
